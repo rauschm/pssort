@@ -1,0 +1,75 @@
+/quicksort {                     % {cmp} [bBpaA] => {cmp} [abpAB]
+  dup length 1 gt                % {cmp} [bBpaA] bool(len([bBpaA])>1)
+  { % if                         % {cmp} [bBpaA]
+    % -----------------
+    % ----- split -----          % {cmp} [bBpaA] => [BA] [pba]  :  [p] [dcba]
+    % -----------------
+    dup length array             % {cmp} [bBpaA] [.....]
+    0 1 index length             % {cmp} [bBpaA] [.....] l:=0 len([.....])
+    1 sub                        % {cmp} [bBpaA] [.....] l r:=len([.....])-1
+    3 index 1 index 2 idiv       % {cmp} [bBpaA] [.....] l r [bBpaA] r/2
+    get                          % {cmp} [bBpaA] [.....] l r p
+    5 -1 roll                    % {cmp} [.....] l r p [bBpaA]
+    dup dup length 1 sub get     % {cmp} [.....] l r p [bBpaA] A
+    3 index 2 idiv exch          % {cmp} [.....] l r p [bBpaA] r/2 A
+    2 index 3 1 roll put         % {cmp} [.....] l r p [bBAaA]
+    dup dup length 1 sub         % {cmp} [.....] l r p [bBAaA] [bBAaA] len([bBAaA])-1
+    3 index put                  % {cmp} [.....] l r p [bBAap]
+    { % forall                   % {cmp} [.....] l r p c
+      2 copy 7 index exec        % {cmp} [.....] l r p c bool(p<c)
+      { % if                     % {cmp} [.....] l r p C
+        4 index                  % {cmp} [.....] l r p C [.....]
+        5 -1 roll dup            % {cmp} [.....] r p C [.....] l l
+        1 add 6 1 roll           % {cmp} [.....] l+1 r p C [.....] l
+      }
+      { % else                   % {cmp} [.....] l r p c
+        4 index                  % {cmp} [.....] l r p c [.....]
+        4 -1 roll dup            % {cmp} [.....] l p c [.....] r r
+        1 sub 5 1 roll           % {cmp} [.....] l r-1 p c [.....] r
+      } ifelse                   % {cmp} [.....] l+1:l r:r-1 p C:c [.....] l:r
+      3 -1 roll put              % {cmp} [C....]:[....c] l' r' p
+    } forall                     % {cmp} [BApba] l r p
+    pop -1 eq                    % {cmp} [BApba] l bool(r=-1 <=> l=0)
+    { % if                       % {cmp} [BApba] l=0
+      1 add                      % {cmp} [BApba] l=1
+    } if
+    1 index 0 2 index            % {cmp} [BApba] l [BApba] 0 l
+    getinterval                  % {cmp} [BApba] l [BA]
+    3 1 roll                     % {cmp} [BA] [BApba] l
+    1 index length               % {cmp} [BA] [BApba] l len([BApba])
+    1 index sub                  % {cmp} [BA] [BApba] l len([BApba])-l
+    getinterval                  % {cmp} [BA] [pba]
+    % -----------------
+    % ----- split -----          % {cmp} [BA] [pba]
+    % -----------------
+    3 1 roll                     % [pba] {cmp} [BA]
+    quicksort                    % [pba] {cmp} [AB]
+    3 1 roll exch                % [AB] {cmp} [pba]
+    quicksort                    % [AB] {cmp} [abp]
+    dup length                   % [AB] {cmp} [abp] len([abp])
+    3 index length add           % [AB] {cmp} [abp] len([abp])+len([AB])
+    array                        % [AB] {cmp} [abp] [.....]
+    1 index length               % [AB] {cmp} [abp] [.....] len([abp])
+    5 -1 roll                    % {cmp} [abp] [.....] len([abp]) [AB]
+    2 index 3 1 roll putinterval % {cmp} [abp] [...AB]
+    0 3 -1 roll                  % {cmp} [...AB] 0 [abp]
+    2 index 3 1 roll putinterval % {cmp} [abpAB]
+  } if
+} bind def
+
+/sort { % [.a.] {cmp} => [a..]
+  (using quicksort\302\256 ...\n) print
+  exch quicksort exch pop
+} bind def
+
+/cmp { lt } def
+/cmpdict { 0 get dup length string cvs exch
+           0 get dup length string cvs gt } bind def
+
+/arraysort { % [.a.] => [a..]
+  //cmp sort
+} bind def
+
+/dictsort { % <<../a,1.>>] => [[/a 1]..]
+  [ exch {2 array astore} forall ] //cmpdict sort
+} bind def

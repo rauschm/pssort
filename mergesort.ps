@@ -1,0 +1,68 @@
+/mergesort {              % {cmp} [.a..b.] => {cmp} [ab....]
+  dup length 1 gt         % {cmp} [.a..b.] bool(len([.a..b.])>1)
+  { % if                  % {cmp} [.a..b.]
+    dup 3 1 roll          % [.a..b.] {cmp} [.a..b.]
+    dup length            % [.a..b.] {cmp} [.a..b.] len([.a..b.])
+    2 idiv 0 exch         % [.a..b.] {cmp} [.a..b.] 0 len([.a..b.])/2
+    getinterval           % [.a..b.] {cmp} [.a.]
+    mergesort             % [.a..b.] {cmp} [a..]
+    3 1 roll exch         % [a..] {cmp} [.a..b.]
+    dup length            % [a..] {cmp} [.a..b.] len([.a..b.])
+    dup 2 idiv exch       % [a..] {cmp} [.a..b.] len([.a..b.])/2 len([.a..b.])
+    1 add 2 idiv          % [a..] {cmp} [.a..b.] len([.a..b.])/2 (len([.a..b.])+1)/2
+    getinterval           % [a..] {cmp} [.b.]
+    mergesort             % [a..] {cmp} [b..]
+    3 -1 roll             % {cmp} [b..] [a..]
+    % -----------------
+    % ----- merge -----   % {cmp} [a..] [b..] => [....]
+    % -----------------
+    dup length            % {cmp} [b..] [a..] len([a..])
+    2 index length add    % {cmp} [b..] [a..] len([a..])+len([b..])
+    array                 % {cmp} [b..] [a..] [....]
+    0 4 2 roll 0 exch 0   % {cmp} [....] 0 [b..] 0 [a..] 0
+    { % loop
+      3 index 3 index get % {cmp} [....] k [b..] j [a..] i b[j]
+      2 index 2 index get % {cmp} [....] k [b..] j [a..] i b[j] a[i]
+      8 index exec        % {cmp} [....] k [b..] j [a..] i bool(b[j]<a[i])
+      { % if              % {cmp} [....] k [b..] j [A..] i
+        4 2 roll          % {cmp} [....] k [A..] i [b..] j
+      } if                % {cmp} [....] k [X..] i [x..] j
+      2 copy get          % {cmp} [....] k [X..] i [x..] j x
+      6 index 7 -1 roll   % {cmp} [....] [X..] i [x..] j x [....] k
+      dup 1 add 8 1 roll  % {cmp} [....] k+1 [X..] i [x..] j x [....] k
+      3 -1 roll put       % {cmp} [x...] k+1 [X..] i [x..] j
+      1 add               % {cmp} [x...] k+1 [X..] i [x..] j+1
+      1 index length      % {cmp} [x...] k+1 [X..] i [x..] j+1 len([x..])
+      1 index le          % {cmp} [x...] k+1 [X..] i [x..] j+1 bool(len([x..])<=j+1)
+      { % if              % {cmp} [x...] k+1 [X..] i [x..] j+1
+        pop pop           % {cmp} [x...] k+1 [X..] i
+        1 index length    % {cmp} [x...] k+1 [X..] i len([X..])
+        1 index sub       % {cmp} [x...] k+1 [X..] i len([X..])-i
+        getinterval       % {cmp} [x...] k+1 [X.]
+        2 index 3 1 roll  % {cmp} [x...] [x...] k+1 [X.]
+        putinterval       % {cmp} [xX..]
+        exit
+      } if                % {cmp} [x...] k [X..] i [x..] j
+    } loop                % {cmp} [....]
+    % -----------------
+    % ----- merge -----   % {cmp} [..]
+    % -----------------
+  } if                    % {cmp} [ab....]
+} bind def
+
+/sort { % [.a.] {cmp} => [a..]
+  (using mergesort\302\256 ...\n) print
+  exch mergesort exch pop
+} bind def
+
+/cmp { lt } def
+/cmpdict { 0 get dup length string cvs exch
+           0 get dup length string cvs gt } bind def
+
+/arraysort { % [.a.] => [a..]
+  //cmp sort
+} bind def
+
+/dictsort { % <<../a,1.>>] => [[/a 1]..]
+  [ exch {2 array astore} forall ] //cmpdict sort
+} bind def
